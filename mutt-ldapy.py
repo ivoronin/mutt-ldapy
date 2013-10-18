@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import sys
 from os.path import expanduser
 import ConfigParser
@@ -35,18 +36,22 @@ class MuttLDAPy(object):
             sys.exit('Error connecting to %s: %s' % (self._options['uri'], exc))
 
     def query(self, query):
+        results = []
         try:
             for (dname, attrs) in self._ldap.search_s(
                     self._options['basedn'], ldap.SCOPE_SUBTREE,
                     self._options['filter'] % {'query': query}):
                 try:
-                    mail, name = [attrs[self._options[option]][0]
-                                  for option in 'mail_attr', 'name_attr']
+                    results.append([attrs[self._options[option]][0]
+                                  for option in 'mail_attr', 'name_attr'])
                 except KeyError as exc:
                     sys.exit('Found an object %s without an attribute %s' % (dname, exc))
-                print('%s\t%s' % (mail, name))
         except ldap.LDAPError as exc:
             sys.exit('Error querying %s: %s' % (self._options['uri'], exc))
+
+        if results:
+            print('EMAIL\tNAME')
+            map(lambda (m,n): print('%s\t%s' % (m,n)), results)
 
 if __name__ == '__main__':
     if len(sys.argv) < 2 or not sys.argv[1]:
